@@ -82,6 +82,8 @@ void brandes()
 
     for(int s = 0; s < V; s++) // outer loop
     {
+        // f(s, v)
+        // V threads, each thread i will perform f(s, i)
         for(int v = 0; v < V; v++) // inner loop
         {
             std::vector<double> delta(V,0.0);
