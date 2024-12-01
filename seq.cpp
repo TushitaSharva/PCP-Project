@@ -80,9 +80,9 @@ void brandes()
 {
     std::vector<double> CB(V, 0.0);
 
-    for(int s = 0; s < V; s++)
+    for(int s = 0; s < V; s++) // outer loop
     {
-        for(int v = 0; v < V; v++)
+        for(int v = 0; v < V; v++) // inner loop
         {
             std::vector<double> delta(V,0.0);
             std::vector<std::vector<long>> prev(V);
