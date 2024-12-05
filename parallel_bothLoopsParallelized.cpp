@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
     
     for (int i = 0; i < V; i++)
     {
-        std::cout << CB[i] / V << " ";
+        std::cout << CB[i] << " ";
     }
     std::cout << "\n";
 

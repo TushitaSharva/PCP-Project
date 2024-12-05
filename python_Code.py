@@ -1,6 +1,5 @@
 import networkx as nx
 import sys
-import time
 
 # Function to read edges from the input file
 def read_edges_from_file(file_name):
@@ -31,21 +30,8 @@ G = nx.DiGraph()
 # Add edges to the graph
 G.add_edges_from(edges)
 
-# Start measuring execution time
-start_time = time.time()
-
 # Compute betweenness centrality
-betweenness_centrality = nx.betweenness_centrality(G, normalized=False)
+betweenness_centrality = nx.betweenness_centrality(G, normalized=False, weight=None)
 
-# End measuring execution time
-end_time = time.time()
-
-# Calculate elapsed time
-execution_time = end_time - start_time
-
-# Write execution time to the output file
-with open("outputs/out.txt", "a") as f:
-    f.write(f"Execution Time for python code: {execution_time:.6f} seconds\n")
-
-# Print betweenness centrality
+# print(list(G.edges(data=True)))
 print(" ".join(f"{centrality}" for centrality in betweenness_centrality.values()))
