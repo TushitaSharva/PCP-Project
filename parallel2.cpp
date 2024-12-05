@@ -65,94 +65,131 @@ void readInput(std::string filename)
     inputfile >> V >> E;
     adjacencyList = new std::vector<long>[V];
 
-    for(int i = 0; i < E; i++)
+    for (int i = 0; i < E; i++)
     {
         long u, v;
         inputfile >> u >> v;
         adjacencyList[u].push_back(v);
     }
-    
+
     inputfile.close();
     return;
 }
 
-void brandes()
+std::vector<double> CB;
+std::mutex *arrMutexes;
+void readInput()
 {
-    std::vector<double> CB(V, 0.0);
+    V = 10;
+    E = 18;
+    adjacencyList = new std::vector<long>[V];
+    adjacencyList[0].push_back(1);
+    adjacencyList[0].push_back(2);
+    adjacencyList[1].push_back(0);
+    adjacencyList[1].push_back(3);
+    adjacencyList[1].push_back(4);
+    adjacencyList[2].push_back(0);
+    adjacencyList[2].push_back(5);
+    adjacencyList[2].push_back(6);
+    adjacencyList[3].push_back(1);
+    adjacencyList[3].push_back(7);
+    adjacencyList[4].push_back(1);
+    adjacencyList[4].push_back(8);
+    adjacencyList[4].push_back(9);
+    adjacencyList[5].push_back(2);
+    adjacencyList[6].push_back(2);
+    adjacencyList[7].push_back(3);
+    adjacencyList[8].push_back(4);
+    adjacencyList[9].push_back(4);
+}
 
-    for(int s = 0; s < V; s++) // outer loop
+void brandes(long s, long v)
+{
+    std::vector<double> delta(V, 0.0);
+    std::vector<std::vector<long>> prev(V);
+    std::vector<long> sigma(V, 0);
+    std::vector<long> dist(V, LLONG_MAX);
+
+    sigma[s] = 1;
+    dist[s] = 0;
+
+    std::queue<long> queue;
+    queue.push(s);
+    std::stack<long> stack;
+
+    while (!queue.empty())
     {
-        for(int v = 0; v < V; v++) // inner loop
+        long u = queue.front();
+        queue.pop();
+        stack.push(u);
+
+        for (auto v : adjacencyList[u])
         {
-            std::vector<double> delta(V,0.0);
-            std::vector<std::vector<long>> prev(V);
-            std::vector<long> sigma(V, 0);
-            std::vector<long> dist(V, LLONG_MAX);
-
-            sigma[s] = 1;
-            dist[s] = 0;
-
-            std::queue<long> queue; queue.push(s);
-            std::stack<long> stack;
-
-
-            while(!queue.empty())
+            if (dist[v] == LLONG_MAX)
             {
-                long u = queue.front();
-                queue.pop();
-                stack.push(u);
-
-                for(auto v: adjacencyList[u])
-                {
-                    if(dist[v] == LLONG_MAX)
-                    {
-                        dist[v] = dist[u]+1;
-                        queue.push(v);
-                    }
-
-                    if(dist[v] == dist[u]+1)
-                    {
-                        sigma[v] = sigma[v] + sigma[u];
-                        prev[v].push_back(u);
-                    }
-                }
+                dist[v] = dist[u] + 1;
+                queue.push(v);
             }
 
-            while(!stack.empty())
+            if (dist[v] == dist[u] + 1)
             {
-                int v = stack.top();
-                stack.pop();
-                for(auto u : prev[v])
-                {
-                    delta[u] += (sigma[u] / sigma[v]) * (1.0 +delta[v]);
-
-                    if(v != s)
-                    {
-                        CB[v] = CB[v] + delta[v];
-                    }
-                }
-
+                sigma[v] = sigma[v] + sigma[u];
+                prev[v].push_back(u);
             }
-
         }
     }
 
-    for(int i = 0; i < V; i++)
+    while (!stack.empty())
     {
-        std::cout << CB[i]/V << " ";
+        int v = stack.top();
+        stack.pop();
+        for (auto u : prev[v])
+        {
+            delta[u] += (sigma[u] / sigma[v]) * (1.0 + delta[v]);
+
+            if (v != s)
+            {
+                arrMutexes[v].lock();
+                CB[v] = CB[v] + delta[v];
+                arrMutexes[v].unlock();
+            }
+        }
     }
-    std::cout << "\n";
-    return;
 }
 
 int main(int argc, char *argv[])
 {
     readInput(argv[1]);
+    CB.resize(V, 0.0); // Initialize CB after V is known
+    arrMutexes = new std::mutex[V];
 
     auto start_time = std::chrono::high_resolution_clock::now();
     LOGGER.OUTPUT("The start time is ", getSysTime(start_time));
 
-    brandes();
+    std::thread threads[V][V];
+
+    for (int s = 0; s < V; s++)
+    {
+        for(int v = 0; v < V; v++)
+        {
+            threads[s][v] = std::thread(brandes, s, v);
+        }
+    }
+
+    for(int s = 0; s < V; s++)
+    {
+        for(int v = 0; v < V; v++)
+        {
+            threads[s][v].join();
+        }
+    }
+
+    
+    for (int i = 0; i < V; i++)
+    {
+        std::cout << CB[i] / V << " ";
+    }
+    std::cout << "\n";
 
     auto stop_time = std::chrono::high_resolution_clock::now();
     LOGGER.OUTPUT("The stop time is ", getSysTime(stop_time));
