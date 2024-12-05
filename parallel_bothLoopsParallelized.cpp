@@ -80,7 +80,8 @@ std::vector<double> CB;
 std::mutex *arrMutexes;
 void readInput()
 {
-    V = 10; E = 18;
+    V = 10;
+    E = 18;
     adjacencyList = new std::vector<long>[V];
     adjacencyList[0].push_back(1);
     adjacencyList[0].push_back(2);
@@ -102,74 +103,58 @@ void readInput()
     adjacencyList[9].push_back(4);
 }
 
-
-void brandes(int s)
+void brandes(long s, long v)
 {
-    for (int v = 0; v < V; v++) // inner loop
+    std::vector<double> delta(V, 0.0);
+    std::vector<std::vector<long>> prev(V);
+    std::vector<long> sigma(V, 0);
+    std::vector<long> dist(V, LLONG_MAX);
+
+    sigma[s] = 1;
+    dist[s] = 0;
+
+    std::queue<long> queue;
+    queue.push(s);
+    std::stack<long> stack;
+
+    while (!queue.empty())
     {
-        LOGGER.DEBUG("s, v: ", s, " ", v);
-        std::vector<double> delta(V, 0.0);      // Number of shortest paths from s to v
-        std::vector<std::vector<long>> prev(V); // Immediate predecessors of v during BFS
-        std::vector<long> sigma(V, 0);          // Number of shortest paths from s to v
-        std::vector<long> dist(V, LLONG_MAX);
+        long u = queue.front();
+        queue.pop();
+        stack.push(u);
 
-        sigma[s] = 1;
-        dist[s] = 0;
-
-        std::queue<long> queue;
-        queue.push(s);
-        std::stack<long> stack;
-
-        while (!queue.empty())
+        for (auto v : adjacencyList[u])
         {
-            long u = queue.front();
-            queue.pop();
-            stack.push(u);
-
-            for (auto v : adjacencyList[u])
+            if (dist[v] == LLONG_MAX)
             {
-                if (dist[v] == LLONG_MAX)
-                {
-                    dist[v] = dist[u] + 1;
-                    queue.push(v);
-                }
+                dist[v] = dist[u] + 1;
+                queue.push(v);
+            }
 
-                if (dist[v] == dist[u] + 1)
-                {
-                    sigma[v] = sigma[v] + sigma[u];
-                    prev[v].push_back(u);
-                }
+            if (dist[v] == dist[u] + 1)
+            {
+                sigma[v] = sigma[v] + sigma[u];
+                prev[v].push_back(u);
             }
         }
-
-        while (!stack.empty())
-        {
-            int v = stack.top();
-            stack.pop();
-            for (auto u : prev[v])
-            {
-                delta[u] += (sigma[u] / sigma[v]) * (1.0 + delta[v]);
-
-                if (v != s)
-                {
-                    arrMutexes[v].lock();
-                    CB[v] += delta[v];
-                    arrMutexes[v].unlock();
-                }
-            }
-        }
-
-        std::string str = "";
-        for (int i = 0; i < V; i++)
-        {
-            str += std::to_string(CB[i]) + " ";
-        }
-
-        LOGGER.DEBUG(str);
-        LOGGER.DEBUG("---------------------");
     }
 
-    LOGGER.DEBUG("=========================================");
+    while (!stack.empty())
+    {
+        int v = stack.top();
+        stack.pop();
+        for (auto u : prev[v])
+        {
+            delta[u] += (sigma[u] / sigma[v]) * (1.0 + delta[v]);
+
+            if (v != s)
+            {
+                arrMutexes[v].lock();
+                CB[v] = CB[v] + delta[v];
+                arrMutexes[v].unlock();
+            }
+        }
+    }
 }
 
 int main(int argc, char *argv[])
@@ -181,18 +166,25 @@ int main(int argc, char *argv[])
     auto start_time = std::chrono::high_resolution_clock::now();
     LOGGER.OUTPUT("The start time is ", getSysTime(start_time));
 
-    std::thread threads[V];
+    std::thread threads[V][V];
 
     for (int s = 0; s < V; s++)
     {
-        threads[s] = std::thread(brandes, s);
+        for(int v = 0; v < V; v++)
+        {
+            threads[s][v] = std::thread(brandes, s, v);
+        }
     }
 
-    for(auto& th: threads)
+    for(int s = 0; s < V; s++)
     {
-        th.join();
+        for(int v = 0; v < V; v++)
+        {
+            threads[s][v].join();
+        }
     }
 
+    
     for (int i = 0; i < V; i++)
     {
         std::cout << CB[i] / V << " ";
@@ -203,7 +195,7 @@ int main(int argc, char *argv[])
     LOGGER.OUTPUT("The stop time is ", getSysTime(stop_time));
 
     auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time).count();
-    LOGGER.OUTPUT("Total execution time: ", time_diff, " milliseconds");
+    LOGGER.OUTPUT("Total execution time for both loops parallelized: ", time_diff, " milliseconds");
 
     return 0;
 }

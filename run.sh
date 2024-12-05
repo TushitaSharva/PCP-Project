@@ -10,8 +10,9 @@ fi
 
 # To loop through all files in the subfolders of the 'testcases' directory and run all the test cases
 for input_file_name in ./inputs/*.txt; do
-    g++ -std=c++17 parallel.cpp && ./a.out "$input_file_name"
-    g++ -std=c++17 parallel2.cpp && ./a.out "$input_file_name"
+    g++ -std=c++17 sequential.cpp && ./a.out "$input_file_name"
+    g++ -std=c++17 parallel_singleLoopParallelized.cpp && ./a.out "$input_file_name"
+    g++ -std=c++17 parallel_bothLoopsParallelized.cpp && ./a.out "$input_file_name"
     python3 python_Code.py "$input_file_name"
     echo "==================================================="
 done

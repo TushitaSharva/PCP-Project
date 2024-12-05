@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     LOGGER.OUTPUT("The stop time is ", getSysTime(stop_time));
 
     auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time).count();
-    LOGGER.OUTPUT("Total execution time: ", time_diff, " milliseconds");
+    LOGGER.OUTPUT("Total execution time for single thread: ", time_diff, " milliseconds");
 
     return 0;
 }
