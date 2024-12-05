@@ -31,7 +31,7 @@ G = nx.DiGraph()
 G.add_edges_from(edges)
 
 # Compute betweenness centrality
-betweenness_centrality = nx.betweenness_centrality(G, normalized=False, weight=None)
+betweenness_centrality = nx.betweenness_centrality(G, normalized=True, endpoints=False)
 
 # print(list(G.edges(data=True)))
 print(" ".join(f"{centrality}" for centrality in betweenness_centrality.values()))

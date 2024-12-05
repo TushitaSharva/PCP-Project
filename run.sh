@@ -12,9 +12,7 @@ fi
 for input_file_name in ./inputs/*.txt; do
     g++ -std=c++17 sequential.cpp && ./a.out "$input_file_name"
     echo "--------------------------"
-    g++ -std=c++17 parallel_singleLoopParallelized.cpp && ./a.out "$input_file_name"
-    echo "--------------------------"
-    g++ -std=c++17 parallel_bothLoopsParallelized.cpp && ./a.out "$input_file_name"
+    g++ -std=c++17 parallel.cpp && ./a.out "$input_file_name"
     echo "--------------------------"
     python3 python_Code.py "$input_file_name"
     echo "==================================================="

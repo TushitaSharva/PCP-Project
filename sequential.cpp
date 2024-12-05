@@ -1,25 +1,13 @@
 #include <iostream>
 #include <vector>
-#include <random>
-#include <string.h>
-#include <unistd.h>
-#include <string>
-#include <stdlib.h>
-#include <cstdlib>
-#include <ctime>
 #include <climits>
-#include <sstream>
-#include <mutex>
-#include <time.h>
 #include <chrono>
 #include <fstream>
-#include <atomic>
-#include <mutex>
-#include <thread>
+#include <sstream>
 #include <queue>
 #include <stack>
 
-// Logger class, for printing and logging to log files and debugging
+// Logger class for printing and logging to log files and debugging
 class Logger
 {
 public:
@@ -28,7 +16,7 @@ public:
     {
         std::ofstream debugfile("outputs/debug.txt", std::ios::app);
         std::ostringstream oss;
-        (oss << ... << args); // Use fold expression to stream all arguments
+        (oss << ... << args); // Use fold expression
         debugfile << oss.str() << "\n";
         debugfile.close();
     }
@@ -58,91 +46,89 @@ static Logger LOGGER;
 long V, E;
 std::vector<long> *adjacencyList;
 
+// Function to read input graph from file
 void readInput(std::string filename)
 {
     std::ifstream inputfile(filename);
-
     inputfile >> V >> E;
     adjacencyList = new std::vector<long>[V];
 
-    for(int i = 0; i < E; i++)
+    for (int i = 0; i < E; i++)
     {
         long u, v;
         inputfile >> u >> v;
         adjacencyList[u].push_back(v);
     }
-    
+
     inputfile.close();
-    return;
 }
 
+// Brandes' algorithm for betweenness centrality
 void brandes()
 {
-    std::vector<double> CB(V, 0.0);
+    std::vector<double> CB(V, 0.0); // Centrality array initialized to 0
 
-    for(int s = 0; s < V; s++) // outer loop
-    {
-        for(int v = 0; v < V; v++) // inner loop
+    for (int s = 0; s < V; s++)
+    { // Outer loop over source node `s`
+        std::vector<double> delta(V, 0.0);
+        std::vector<std::vector<long>> prev(V);
+        std::vector<double> sigma(V, 0.0);
+        std::vector<double> dist(V, LLONG_MAX);
+
+        sigma[s] = 1; // Initialize source node
+        dist[s] = 0;
+
+        std::queue<long> queue;
+        queue.push(s);
+        std::stack<long> stack;
+
+        // Forward BFS to calculate shortest paths and sigma
+        while (!queue.empty())
         {
-            std::vector<double> delta(V,0.0);
-            std::vector<std::vector<long>> prev(V);
-            std::vector<long> sigma(V, 0);
-            std::vector<long> dist(V, LLONG_MAX);
+            long u = queue.front();
+            queue.pop();
+            stack.push(u);
 
-            sigma[s] = 1;
-            dist[s] = 0;
-
-            std::queue<long> queue; queue.push(s);
-            std::stack<long> stack;
-
-
-            while(!queue.empty())
+            for (auto v : adjacencyList[u])
             {
-                long u = queue.front();
-                queue.pop();
-                stack.push(u);
-
-                for(auto v: adjacencyList[u])
-                {
-                    if(dist[v] == LLONG_MAX)
-                    {
-                        dist[v] = dist[u]+1;
-                        queue.push(v);
-                    }
-
-                    if(dist[v] == dist[u]+1)
-                    {
-                        sigma[v] = sigma[v] + sigma[u];
-                        prev[v].push_back(u);
-                    }
-                }
-            }
-
-            while(!stack.empty())
-            {
-                int v = stack.top();
-                stack.pop();
-                for(auto u : prev[v])
-                {
-                    delta[u] += (sigma[u] / sigma[v]) * (1.0 +delta[v]);
-
-                    if(v != s)
-                    {
-                        CB[v] = CB[v] + delta[v];
-                    }
+                if (dist[v] == LLONG_MAX)
+                { // First visit
+                    dist[v] = dist[u] + 1;
+                    queue.push(v);
                 }
 
+                if (dist[v] == dist[u] + 1)
+                { // Shortest path found
+                    sigma[v] += sigma[u];
+                    prev[v].push_back(u);
+                }
+            }
+        }
+
+        // Backward phase to calculate delta and update CB
+        while (!stack.empty())
+        {
+            long v = stack.top();
+            stack.pop();
+
+            for (auto u : prev[v])
+            {
+                delta[u] += (double(sigma[u]) / sigma[v]) * (1.0 + delta[v]);
             }
 
+            if (v != s)
+            { // Update CB[v] with delta
+                CB[v] += delta[v];
+            }
         }
     }
 
-    for(int i = 0; i < V; i++)
+    // Output raw unnormalized centrality values
+    for (int i = 0; i < V; i++)
     {
-        std::cout << CB[i] << " ";
+        std::cout << CB[i] * (1.0 / ((V - 1) * (V - 2))) << " ";
     }
     std::cout << "\n";
-    return;
 }
 
 int main(int argc, char *argv[])

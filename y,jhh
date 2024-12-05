@@ -1,0 +1,42 @@
+algorithm Brandes(Graph) is
+    for each u in Graph.Vertices do
+        CB[u] ← 0
+
+    for each s in Graph.Vertices do
+        for each v in Graph.Vertices do
+            δ[v] ← 0                   // Single dependency of s on v
+            prev[v] ← empty list       // Immediate predecessors of v during BFS
+            σ[v] ← 0                   // Number of shortest paths from s to v (s implied)
+            dist[v] ← null             // No paths are known initially,
+        σ[s] ← 1                       // except the start vertex
+        dist[s] ← 0
+
+        Q ← queue containing only s    // Breadth-first search
+        S ← empty stack                // Record the order in which vertices are visited
+
+        // Single-source shortest paths
+
+        while Q is not empty do
+            u ← Q.dequeue()
+            S.push(u)
+
+            for each v in Graph.Neighbours[u] do
+                if dist[v] = null then
+                    dist[v] ← dist[u] + 1
+                    Q.enqueue(v)
+                if dist[v] = dist[u] + 1 then
+                    σ[v] ← σ[v] + σ[u]
+                    prev[v].append(u)
+
+        // Backpropagation of dependencies
+
+        while S is not empty do
+            v ← S.pop()
+
+            for each u in prev[v] do
+                δ[u] ← δ[u] + σ[u] / σ[v] * (1 + δ[v])
+
+                if u ≠ s then
+                    CB[v] ← CB[v] + δ[v]    // Halved for undirected graphs
+
+    return CB
